@@ -1,0 +1,116 @@
+#
+# Copyright (c) 2022 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+mainmenu "Sidewalk End Device nRF Connect Application"
+
+choice SID_END_DEVICE
+	prompt "Select application variant to run"
+    default SID_END_DEVICE_HELLO
+config SID_END_DEVICE_HELLO
+    bool "Sidewalk hello world application"
+config SID_END_DEVICE_SENSOR_MONITORING
+    bool "Demo sensor monitoring application"
+    imply SIDEWALK_DEMO_PARSER
+    imply SENSOR
+    imply TEMP_NRF5
+config SID_END_DEVICE_DUT
+    bool "Device under test application"
+endchoice #SID_END_DEVICE
+
+if SID_END_DEVICE_HELLO
+
+config SID_END_DEVICE_ECHO_MSGS
+    bool "Eable message echo feature"
+    default y
+    help
+      Echo received messages back to Sidewlak cloud.
+      Works with GET and SET messages types.
+
+endif #SID_END_DEVICE_HELLO
+
+if SID_END_DEVICE_SENSOR_MONITORING
+
+rsource "Kconfig.sensor_monitoring"
+
+endif #SID_END_DEVICE_SENSOR_MONITORING
+
+config SID_END_DEVICE_CLI
+    bool "Enable Sidewalk CLI (DUT)"
+    imply SHELL
+    help
+      Enables Sidewalk command line interface.
+      The interface commands are compatilbe with former dut sample.
+
+config SID_END_DEVICE_AUTO_START
+    default y
+    bool "Enable automatic Sidewalk initlization and start"
+
+config SID_END_DEVICE_AUTO_CONN_REQ
+    default y
+    bool "Enable automatic connection request before message send"
+
+config SID_END_DEVICE_PERSISTENT_LINK_MASK
+    bool "Enable persitent link mask"
+    help
+      The Sidewalk link mask persists after a device reset
+      but defaults after a factory reset.
+      This could affect the flash lifespan.
+
+config SID_END_DEVICE_EVENT_HEAP_SIZE
+    int "Heap for Sidewalk event contexts"
+    default 2048
+
+config SIDEWALK_FILE_TRANSFER
+    select EXPERIMENTAL
+    bool "Enable Sidewalk file transfer"
+    help
+      Add support for Sidewalk Bulk Data Transfer (SBDT)
+      in application.
+
+if SIDEWALK_FILE_TRANSFER
+
+config SIDEWALK_FILE_TRANSFER_HEAP_SIZE
+    int "Sidewalk file transfer heap size"
+    default 10240
+    help
+        Heap size in bytes to be allocated
+        for Sidewalk Bulk Data Transfer (SBDT).
+
+choice SIDEWALK_FILE_TRANSFER_IMPL
+    prompt "Select which implementation of SBDT to use"
+    default SIDEWALK_FILE_TRANSFER_DFU
+
+config SIDEWALK_FILE_TRANSFER_DFU
+    bool "Sidewalk file transfer and dfu"
+    imply SIDEWALK_DFU_IMG_UTILS
+    imply DFU_MULTI_IMAGE
+    imply DFU_TARGET
+    imply DFU_TARGET_MCUBOOT
+    imply STREAM_FLASH
+    imply STREAM_FLASH_ERASE
+    help
+        Save recived data to flash. Expect CBOR manifest.
+        Autoatically reset device after file transfer.
+
+config SIDEWALK_FILE_TRANSFER_SHELL
+    bool "SBDT cli backend for file transfer"
+    imply SHELL
+    help
+        Use shell commands to controll file transfer.
+        This implementation does not save received data,
+        but allows user to controll the sbdt behaviour form shell.
+
+endchoice
+
+config SBDT_MAX_PARALEL_TRANSFERS
+    int "maximum number of sbdt paralel transfers"
+    default 3
+
+endif # SIDEWALK_FILE_TRANSFER
+
+rsource "Kconfig.defconfig"
+
+source "Kconfig.zephyr"
